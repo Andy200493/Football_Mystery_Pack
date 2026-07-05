@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getGateway } from "./ai-gateway.server";
 import type { Player } from "@/data/players";
 
-const MODEL = "google/gemini-3-flash-preview";
+const MODEL = "gemini-2.5-flash";
 
 // Loose validator: we only need the fields we format into the prompt.
 // Using `passthrough` and casting to Player subset for formatting.

@@ -1,15 +1,13 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-
-export function createLovableAiGatewayProvider(apiKey: string) {
-  return createOpenAICompatible({
-    name: "lovable-ai-gateway",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: { "Lovable-API-Key": apiKey },
-  });
-}
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 export function getGateway() {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
-  return createLovableAiGatewayProvider(key);
+  const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+  if (!key) {
+    throw new Error("Missing GOOGLE_GENERATIVE_AI_API_KEY");
+  }
+
+  return createGoogleGenerativeAI({
+    apiKey: key,
+  });
 }

@@ -195,10 +195,13 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
   const t = useT();
   const { locale } = useLocale();
   const askerName = state.turn === 1 ? state.p1Name : state.p2Name;
-  const opponentName = state.turn === 1 ? state.p2Name : state.p1Name;
-  const opponentPacks = state.turn === 1 ? state.packs2 : state.packs1;
 
-  const [selectedPack, setSelectedPack] = useState<string>(opponentPacks[0].id);
+const currentPlayerPacks =
+  state.turn === 1 ? state.packs1 : state.packs2;
+
+const [selectedPack, setSelectedPack] = useState<string>(
+  currentPlayerPacks[0].id
+);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const ask = useServerFn(askReferee);
@@ -209,7 +212,7 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
 
   async function submit() {
     if (!question.trim()) return;
-    const pack = opponentPacks.find((p) => p.id === selectedPack)!;
+   const pack = currentPlayerPacks.find((p) => p.id === selectedPack)!;
     setLoading(true);
     try {
       const result = await ask({ data: { players: pack.players, question: question.trim(), locale } });
@@ -218,7 +221,7 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
         qa: {
           round: state.round,
           askedBy: state.turn,
-          targetPlayer: state.turn === 1 ? 2 : 1,
+          targetPlayer: state.turn,
           targetPackLabel: pack.label,
           question: question.trim(),
           verdict: result.verdict,
@@ -253,9 +256,11 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
               {t("q.round", { n: state.round })}
             </div>
             <h2 className="text-2xl font-display font-bold mt-1">
-              <span className="text-neon">{askerName}</span>{" "}
-              {t("q.turn", { asker: "", opp: opponentName }).replace(/^\s*,?\s*/, "")}
-            </h2>
+  <span className="text-neon">{askerName}</span>{" "}
+  {locale === "ar"
+    ? "اسأل عن إحدى الباقات الخاصة بك"
+    : "Ask about one of your Mystery Packs"}
+</h2>
           </div>
           <Button
             onClick={goToChoose}
@@ -270,7 +275,7 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
         <div className="mt-6">
           <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">{t("q.targetPack")}</div>
           <div className="flex gap-3 flex-wrap">
-            {opponentPacks.map((p) => (
+            {currentPlayerPacks.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSelectedPack(p.id)}
@@ -281,7 +286,10 @@ function QuestionPhase({ state, dispatch }: { state: State; dispatch: React.Disp
                 }`}
               >
                 <div className="font-display font-semibold">{p.label}</div>
-                <div className="text-[10px] uppercase tracking-widest">{t("q.of", { name: opponentName })}</div>
+
+<div className="text-[10px] uppercase tracking-widest">
+  {locale === "ar" ? "الباقة الخاصة بك" : "Your Mystery Pack"}
+</div>
               </button>
             ))}
           </div>
