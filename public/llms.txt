@@ -1,0 +1,6 @@
+# Football Mystery Pack
+
+> Two-player football deduction game with an AI referee and AI match analyst. Draw hidden squads of football legends, ask yes/no questions, then simulate the match.
+
+## Pages
+- [Home](/): Landing page and game rules
