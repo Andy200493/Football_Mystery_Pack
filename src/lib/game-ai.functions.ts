@@ -4,7 +4,8 @@ import { z } from "zod";
 import { getGateway } from "./ai-gateway.server";
 import type { Player } from "@/data/players";
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+
 
 // Loose validator: we only need the fields we format into the prompt.
 // Using `passthrough` and casting to Player subset for formatting.
@@ -94,12 +95,22 @@ Format your response as EXACTLY two lines:
 VERDICT: <Yes|No|Probably|Cannot be determined>
 REASON: <short generic reason without names>`;
 
-    const { text } = await generateText({
-      model: gateway(MODEL),
-      system,
-      prompt: `SQUAD (hidden):\n${squad}\n\nQUESTION: ${data.question}`,
-    });
+   let text = "";
 
+try {
+  const result = await generateText({
+    model: gateway(MODEL),
+    system,
+    prompt: `SQUAD (hidden):\n${squad}\n\nQUESTION: ${data.question}`,
+  });
+
+  text = result.text;
+  console.log("AI RESPONSE:", text);
+
+} catch (err) {
+  console.error("FULL AI ERROR:", err);
+  throw err;
+}
     const verdictMatch = text.match(/VERDICT:\s*(Yes|No|Probably|Cannot be determined)/i);
     const reasonMatch = text.match(/REASON:\s*(.+)/i);
     const verdictEn = (verdictMatch?.[1] ?? "Cannot be determined") as
