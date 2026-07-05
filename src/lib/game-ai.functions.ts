@@ -6,33 +6,64 @@ import type { Player } from "@/data/players";
 
 const MODEL = "google/gemini-3-flash-preview";
 
-const PlayerSchema = z.object({
-  name: z.string(),
-  position: z.string(),
-  nationality: z.string(),
-  clubs: z.array(z.string()),
-  era: z.string(),
-  ballonDor: z.boolean(),
-  worldCup: z.boolean(),
-  championsLeague: z.boolean(),
-  leagueTitles: z.number(),
-  careerGoals: z.number(),
-  retired: z.boolean(),
-  rating: z.number(),
-  foot: z.string(),
-  style: z.string(),
-  legendary: z.boolean(),
-}).passthrough();
+// Loose validator: we only need the fields we format into the prompt.
+// Using `passthrough` and casting to Player subset for formatting.
+const PlayerSchema = z
+  .object({
+    name: z.string(),
+    position: z.string(),
+    nationality: z.string(),
+    clubs: z.array(z.string()),
+    leagues: z.array(z.string()).optional(),
+    era: z.string(),
+    active: z.boolean().optional(),
+    foot: z.string(),
+    height: z.number().optional(),
+    rating: z.number(),
+    tier: z.string().optional(),
+    ballonDor: z.boolean(),
+    worldCup: z.boolean(),
+    championsLeague: z.boolean(),
+    leagueTitles: z.number(),
+    careerGoals: z.number(),
+    caps: z.number().optional(),
+    legendary: z.boolean(),
+    captain: z.boolean().optional(),
+    versatility: z.number().optional(),
+    speed: z.number().optional(),
+    physicality: z.number().optional(),
+    passing: z.number().optional(),
+    shooting: z.number().optional(),
+    defending: z.number().optional(),
+    dribbling: z.number().optional(),
+  })
+  .passthrough();
 
-type SquadInput = Omit<Player, "id"> & { id?: string };
-function formatSquad(players: SquadInput[]) {
-  return players
-    .map(
-      (p, i) =>
-        `${i + 1}. ${p.name} — ${p.position} | ${p.nationality} | era:${p.era} | clubs:[${p.clubs.join(", ")}] | BdOr:${p.ballonDor} | WC:${p.worldCup} | UCL:${p.championsLeague} | leagues:${p.leagueTitles} | goals:${p.careerGoals} | retired:${p.retired} | rating:${p.rating} | foot:${p.foot} | style:${p.style} | legendary:${p.legendary}`
-    )
-    .join("\n");
+type SquadInput = Partial<Player> & Pick<Player, "name" | "position" | "nationality" | "era" | "rating">;
+
+function fmt(p: SquadInput, i: number) {
+  const l = p.leagues?.join(",") ?? "";
+  const c = p.clubs?.join(",") ?? "";
+  const attrs = `spd:${p.speed ?? "?"} phy:${p.physicality ?? "?"} pas:${p.passing ?? "?"} sho:${p.shooting ?? "?"} def:${p.defending ?? "?"} dri:${p.dribbling ?? "?"}`;
+  return (
+    `${i + 1}. ${p.name} — pos:${p.position} nat:${p.nationality} era:${p.era} ` +
+    `active:${p.active ?? "?"} foot:${p.foot ?? "?"} height:${p.height ?? "?"}cm ` +
+    `rating:${p.rating} tier:${p.tier ?? "?"} ` +
+    `BdOr:${p.ballonDor} WC:${p.worldCup} UCL:${p.championsLeague} ` +
+    `leagueTitles:${p.leagueTitles} goals:${p.careerGoals} caps:${p.caps ?? "?"} ` +
+    `legend:${p.legendary} captain:${p.captain ?? false} ` +
+    `clubs:[${c}] leagues:[${l}] ${attrs}`
+  );
 }
+
+function formatSquad(players: SquadInput[]) {
+  return players.map(fmt).join("\n");
+}
+
+const LOCALE_INSTRUCTION: Record<"en" | "ar", string> = {
+  en: "Respond in English.",
+  ar: "أجب باللغة العربية فقط. استخدم مفردات عربية طبيعية.",
+};
 
 // ---------- Referee ----------
 export const askReferee = createServerFn({ method: "POST" })
@@ -41,46 +72,43 @@ export const askReferee = createServerFn({ method: "POST" })
       .object({
         players: z.array(PlayerSchema),
         question: z.string().min(3).max(400),
+        locale: z.enum(["en", "ar"]).default("en"),
       })
-      .parse(input)
+      .parse(input),
   )
   .handler(async ({ data }) => {
     const gateway = getGateway();
     const squad = formatSquad(data.players as SquadInput[]);
 
-    const system = `You are the AI Referee for a football mystery pack game.
-You will be shown a HIDDEN football squad and a yes/no question about it.
-Your job: answer the question based ONLY on the squad attributes provided.
+    const system = `You are the AI Referee for a football deduction game. You are shown a HIDDEN squad and asked a yes/no question about it. Answer STRICTLY from the attributes provided.
 
-CRITICAL RULES:
-- NEVER reveal any player names, nationalities, clubs, or specific identifying details.
-- Answer with exactly ONE of these labels: "Yes", "No", "Probably", "Cannot be determined".
-- Then give a very short (max 12 words) justification WITHOUT identifying anyone.
-- Bad: "Yes, because Messi is in the squad." Good: "Yes, one of the forwards fits that description."
-- If the question is impossible to judge from the attributes given, answer "Cannot be determined".
-- If it's mostly true but ambiguous, answer "Probably".
+RULES:
+- NEVER reveal player names, clubs, or nationalities in your reason.
+- Use ALL attributes: rating, position, nationality, era, active/retired, foot, height, honours (Ballon d'Or, WC, UCL, league titles, caps, goals), tier, playing stats (speed/passing/shooting/defending/dribbling), captain, legendary.
+- Verdict labels: "Yes" (clear yes), "No" (clear no), "Probably" (partially/ambiguous), "Cannot be determined" (attributes don't cover it).
+- Do NOT default to "Yes". Be honest — most questions should get a mix across many games.
+- Reason: max 14 words, generic, no names. E.g. "Yes, one midfielder fits." / "No, none of the eleven qualify." / "Probably, two players are close." / "Cannot be determined from attributes."
+- ${LOCALE_INSTRUCTION[data.locale]}
 
-Format your response as exactly two lines:
+Format your response as EXACTLY two lines:
 VERDICT: <Yes|No|Probably|Cannot be determined>
 REASON: <short generic reason without names>`;
 
     const { text } = await generateText({
       model: gateway(MODEL),
       system,
-      prompt: `SQUAD (hidden from players):\n${squad}\n\nQUESTION: ${data.question}`,
+      prompt: `SQUAD (hidden):\n${squad}\n\nQUESTION: ${data.question}`,
     });
 
-    // Parse verdict + reason
     const verdictMatch = text.match(/VERDICT:\s*(Yes|No|Probably|Cannot be determined)/i);
     const reasonMatch = text.match(/REASON:\s*(.+)/i);
-    const verdict = (verdictMatch?.[1] ?? "Cannot be determined") as
+    const verdictEn = (verdictMatch?.[1] ?? "Cannot be determined") as
       | "Yes"
       | "No"
       | "Probably"
       | "Cannot be determined";
-    const reason = reasonMatch?.[1]?.trim() ?? "";
-
-    return { verdict, reason };
+    // Verdict is machine-readable; localised label is applied client-side.
+    return { verdict: verdictEn, reason: reasonMatch?.[1]?.trim() ?? "" };
   });
 
 // ---------- Match Simulator ----------
@@ -92,35 +120,34 @@ export const simulateMatch = createServerFn({ method: "POST" })
         teamB: z.array(PlayerSchema),
         nameA: z.string().default("Team A"),
         nameB: z.string().default("Team B"),
+        locale: z.enum(["en", "ar"]).default("en"),
       })
-      .parse(input)
+      .parse(input),
   )
   .handler(async ({ data }) => {
     const gateway = getGateway();
 
-    const system = `You are an elite AI football analyst simulating a match between two hypothetical squads from different eras.
-Analyze: player quality, team chemistry, position balance, era differences, tactical compatibility, overall strength.
+    const system = `You are an elite AI football analyst simulating a match between two hypothetical squads assembled from different eras and abilities.
 
-Return your analysis in this EXACT format (no markdown, no code blocks):
+Weigh: team average rating, position balance, chemistry, era compatibility, honours, playing style. Do NOT assume equality — one side may clearly be stronger.
+
+Return your analysis in this EXACT format (no markdown):
 
 WIN_A: <integer 0-100>
 WIN_B: <integer 0-100>
 DRAW: <integer 0-100>
 SCORE: <e.g. 3-2>
-MVP: <player name from either squad>
+MVP: <a player name from either squad>
 WINNER: <"${data.nameA}" | "${data.nameB}" | "Draw">
-SUMMARY: <2-3 sentences describing how the match unfolds>
+SUMMARY: <2-3 sentences on how the match unfolds>
 TACTICS: <2-3 sentences on tactical explanation and key matchups>
 
-WIN_A + WIN_B + DRAW must sum to 100.`;
+WIN_A + WIN_B + DRAW must sum to 100.
+${LOCALE_INSTRUCTION[data.locale]} Keep KEY labels in English; only SUMMARY, TACTICS, WINNER-name text may be translated.`;
 
     const prompt = `${data.nameA}:\n${formatSquad(data.teamA as SquadInput[])}\n\n${data.nameB}:\n${formatSquad(data.teamB as SquadInput[])}`;
 
-    const { text } = await generateText({
-      model: gateway(MODEL),
-      system,
-      prompt,
-    });
+    const { text } = await generateText({ model: gateway(MODEL), system, prompt });
 
     const get = (key: string) => {
       const m = text.match(new RegExp(`${key}:\\s*(.+?)(?:\\n|$)`, "i"));
@@ -136,7 +163,7 @@ WIN_A + WIN_B + DRAW must sum to 100.`;
       winB,
       draw,
       score: get("SCORE") || "2-1",
-      mvp: get("MVP") || "Unknown",
+      mvp: get("MVP") || "—",
       winner: get("WINNER") || data.nameA,
       summary: get("SUMMARY") || "A close match with quality on both sides.",
       tactics: get("TACTICS") || "Balanced tactical battle across the pitch.",

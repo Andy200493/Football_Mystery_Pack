@@ -36,48 +36,63 @@
   --color-neon-glow: var(--neon-glow);
   --color-pitch: var(--pitch);
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Cairo", "IBM Plex Sans Arabic", "Segoe UI", sans-serif;
 
-  --shadow-neon: 0 0 24px oklch(0.85 0.24 145 / 0.35), 0 0 60px oklch(0.85 0.24 145 / 0.15);
-  --shadow-card: 0 20px 60px -20px oklch(0 0 0 / 0.6);
+  --shadow-neon: 0 0 24px oklch(0.65 0.19 258 / 0.45), 0 0 60px oklch(0.65 0.19 258 / 0.22);
+  --shadow-card: 0 20px 60px -20px oklch(0 0 0 / 0.65);
 }
 
 :root {
   --radius: 0.9rem;
 
-  /* Dark pitch theme - always dark */
-  --background: oklch(0.14 0.02 160);
-  --foreground: oklch(0.97 0.01 150);
+  /* Dark premium pitch theme */
+  --background: oklch(0.14 0.03 258);
+  --foreground: oklch(0.97 0.01 240);
 
-  --card: oklch(0.18 0.025 160);
-  --card-foreground: oklch(0.97 0.01 150);
+  --card: oklch(0.18 0.035 258);
+  --card-foreground: oklch(0.97 0.01 240);
 
-  --popover: oklch(0.19 0.025 160);
-  --popover-foreground: oklch(0.97 0.01 150);
+  --popover: oklch(0.19 0.035 258);
+  --popover-foreground: oklch(0.97 0.01 240);
 
-  --primary: oklch(0.85 0.24 145);
-  --primary-foreground: oklch(0.14 0.02 160);
+  /* Football blue — matches #3B82F6 / hover #2563EB */
+  --primary: oklch(0.65 0.19 258);
+  --primary-foreground: oklch(0.14 0.03 258);
 
-  --secondary: oklch(0.24 0.03 160);
-  --secondary-foreground: oklch(0.97 0.01 150);
+  --secondary: oklch(0.24 0.04 258);
+  --secondary-foreground: oklch(0.97 0.01 240);
 
-  --muted: oklch(0.22 0.02 160);
-  --muted-foreground: oklch(0.68 0.02 150);
+  --muted: oklch(0.22 0.03 258);
+  --muted-foreground: oklch(0.7 0.03 250);
 
-  --accent: oklch(0.28 0.04 155);
-  --accent-foreground: oklch(0.97 0.01 150);
+  --accent: oklch(0.28 0.05 258);
+  --accent-foreground: oklch(0.97 0.01 240);
 
   --destructive: oklch(0.65 0.24 25);
-  --destructive-foreground: oklch(0.97 0.01 150);
+  --destructive-foreground: oklch(0.97 0.01 240);
 
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.85 0.24 145 / 0.6);
+  --ring: oklch(0.65 0.19 258 / 0.6);
 
-  --neon: oklch(0.88 0.26 145);
-  --neon-glow: oklch(0.92 0.22 145);
-  --pitch: oklch(0.18 0.05 155);
+  /* Accent (formerly "neon" — now football blue) */
+  --neon: oklch(0.68 0.2 258);
+  --neon-glow: oklch(0.72 0.22 258);
+  --pitch: oklch(0.18 0.05 258);
+}
+
+/* Arabic typography swap */
+html[dir="rtl"] {
+  font-family: var(--font-arabic);
+}
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4 {
+  font-family: var(--font-arabic);
+  letter-spacing: 0;
 }
 
 @layer base {
@@ -86,7 +101,12 @@
   }
   html,
   body {
-    background: radial-gradient(ellipse at top, oklch(0.19 0.04 155) 0%, oklch(0.11 0.02 160) 60%, oklch(0.09 0.02 160) 100%);
+    background: radial-gradient(
+      ellipse at top,
+      oklch(0.19 0.05 258) 0%,
+      oklch(0.11 0.025 258) 60%,
+      oklch(0.08 0.02 258) 100%
+    );
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-sans);
@@ -106,12 +126,15 @@
   .glass-strong {
     background: color-mix(in oklab, var(--card) 82%, transparent);
     backdrop-filter: blur(24px) saturate(160%);
-    border: 1px solid color-mix(in oklab, var(--neon) 18%, transparent);
+    border: 1px solid color-mix(in oklab, var(--neon) 20%, transparent);
   }
   .text-neon {
     color: var(--neon);
-    text-shadow: 0 0 20px color-mix(in oklab, var(--neon) 50%, transparent);
+    text-shadow: 0 0 20px color-mix(in oklab, var(--neon) 45%, transparent);
   }
+  .bg-neon { background-color: var(--neon); }
+  .border-neon { border-color: var(--neon); }
+  .shadow-neon { box-shadow: var(--shadow-neon); }
   .glow-ring {
     box-shadow: var(--shadow-neon);
   }
@@ -134,13 +157,9 @@
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes card-flip {
-  0% { transform: rotateY(0deg); }
-  100% { transform: rotateY(180deg); }
-}
 @keyframes pulse-neon {
-  0%, 100% { box-shadow: 0 0 20px color-mix(in oklab, var(--neon) 30%, transparent); }
-  50% { box-shadow: 0 0 40px color-mix(in oklab, var(--neon) 60%, transparent); }
+  0%, 100% { box-shadow: 0 0 20px color-mix(in oklab, var(--neon) 35%, transparent); }
+  50% { box-shadow: 0 0 40px color-mix(in oklab, var(--neon) 65%, transparent); }
 }
 
 .animate-pack-float { animation: pack-float 3.6s ease-in-out infinite; }

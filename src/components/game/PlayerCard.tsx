@@ -1,60 +1,67 @@
 import type { Player } from "@/data/players";
+import { getPortraitUrl, getInitials } from "@/lib/portraits";
+import { useT } from "@/lib/i18n/context";
 
 const POSITION_ACCENT: Record<Player["position"], string> = {
-  GK: "from-amber-400/30 to-amber-600/10 border-amber-400/40 text-amber-200",
-  DEF: "from-sky-400/30 to-sky-600/10 border-sky-400/40 text-sky-200",
-  MID: "from-emerald-400/30 to-emerald-600/10 border-emerald-400/40 text-emerald-200",
-  FWD: "from-rose-400/30 to-rose-600/10 border-rose-400/40 text-rose-200",
-};
-
-const POSITION_LABEL: Record<Player["position"], string> = {
-  GK: "Goalkeeper",
-  DEF: "Defender",
-  MID: "Midfielder",
-  FWD: "Forward",
+  GK:  "from-sky-500/25 to-sky-800/10 border-sky-400/40",
+  DEF: "from-blue-500/25 to-blue-800/10 border-blue-400/40",
+  MID: "from-indigo-500/25 to-indigo-800/10 border-indigo-400/40",
+  FWD: "from-cyan-500/25 to-cyan-800/10 border-cyan-400/40",
 };
 
 export function PlayerCard({ player, delayMs = 0 }: { player: Player; delayMs?: number }) {
+  const t = useT();
+  const portrait = getPortraitUrl(player);
   return (
     <div
-      className={`relative rounded-2xl p-4 border bg-gradient-to-br ${POSITION_ACCENT[player.position]} backdrop-blur-md animate-fade-up shadow-card`}
+      className={`relative rounded-2xl p-3 border bg-gradient-to-br ${POSITION_ACCENT[player.position]} backdrop-blur-md animate-fade-up shadow-card`}
       style={{ animationDelay: `${delayMs}ms` }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="text-[10px] uppercase tracking-widest opacity-80">
-            {POSITION_LABEL[player.position]}
-          </div>
-          <div className="font-display text-lg leading-tight font-semibold text-foreground">
-            {player.name}
-          </div>
-          <div className="text-xs text-muted-foreground mt-0.5">{player.nationality}</div>
+      <div className="flex items-start gap-3">
+        <div className="relative size-14 rounded-xl overflow-hidden bg-neon/10 border border-neon/30 flex items-center justify-center shrink-0">
+          <img
+            src={portrait}
+            alt={player.name}
+            loading="lazy"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <span className="text-xs font-display font-bold text-neon">{getInitials(player.name)}</span>
         </div>
-        <div className="font-display text-2xl font-bold text-neon">{player.rating}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground truncate">
+                {t(`pc.pos.${player.position}`)}
+              </div>
+              <div className="font-display text-base leading-tight font-semibold text-foreground truncate">
+                {player.name}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                {player.nationality} · {player.clubs[0] ?? "—"}
+              </div>
+            </div>
+            <div className="font-display text-2xl font-bold text-neon shrink-0">{player.rating}</div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+            {player.ballonDor && <Badge>{t("pc.badge.bd")}</Badge>}
+            {player.worldCup && <Badge>{t("pc.badge.wc")}</Badge>}
+            {player.championsLeague && <Badge>{t("pc.badge.ucl")}</Badge>}
+            {player.legendary && <Badge>{t("pc.badge.leg")}</Badge>}
+            {player.captain && <Badge>{t("pc.badge.cap")}</Badge>}
+          </div>
+        </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
-        {player.ballonDor && (
-          <span className="rounded-full bg-yellow-400/15 border border-yellow-400/40 text-yellow-200 px-2 py-0.5">
-            Ballon d'Or
-          </span>
-        )}
-        {player.worldCup && (
-          <span className="rounded-full bg-emerald-400/15 border border-emerald-400/40 text-emerald-200 px-2 py-0.5">
-            World Cup
-          </span>
-        )}
-        {player.championsLeague && (
-          <span className="rounded-full bg-indigo-400/15 border border-indigo-400/40 text-indigo-200 px-2 py-0.5">
-            UCL
-          </span>
-        )}
-        {player.legendary && (
-          <span className="rounded-full bg-fuchsia-400/15 border border-fuchsia-400/40 text-fuchsia-200 px-2 py-0.5">
-            Legend
-          </span>
-        )}
-      </div>
-      <div className="mt-2 text-[11px] text-muted-foreground italic">{player.style}</div>
     </div>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-neon/15 border border-neon/40 text-neon px-2 py-0.5">
+      {children}
+    </span>
   );
 }

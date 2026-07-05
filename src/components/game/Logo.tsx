@@ -1,4 +1,12 @@
+import { useT } from "@/lib/i18n/context";
+
 export function Logo({ className = "" }: { className?: string }) {
+  const t = useT();
+  const brand = t("brand.name");
+  // Split at last space for two-tone brand rendering (works for EN & AR).
+  const words = brand.split(" ");
+  const first = words.slice(0, words.length - 1).join(" ");
+  const last = words[words.length - 1];
   return (
     <div className={`inline-flex items-center gap-2 ${className}`}>
       <div className="relative size-8">
@@ -9,8 +17,8 @@ export function Logo({ className = "" }: { className?: string }) {
         </svg>
       </div>
       <div className="font-display font-bold tracking-tight">
-        <span className="text-foreground">Football</span>{" "}
-        <span className="text-neon">Mystery Pack</span>
+        <span className="text-foreground">{first}</span>{" "}
+        <span className="text-neon">{last}</span>
       </div>
     </div>
   );
